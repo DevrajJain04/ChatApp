@@ -1,0 +1,1 @@
+int currentPageIndex = 0;
