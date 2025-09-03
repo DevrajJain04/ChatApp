@@ -85,8 +85,7 @@ class AllChatScreenState extends State<AllChatScreen> {
                 itemCount: snapshot.data!.docs.length,
                 itemBuilder: (context, index) {
                   Map<String, dynamic> userData =
-                      snapshot.data!.docs[index].data() as Map<String, dynamic>;
-
+                      snapshot.data!.docs[index].data();
                   return ListTile(
                     title: Text(userData['email'] ?? ''),
                     subtitle: Text(userData['uid'] ?? ''),

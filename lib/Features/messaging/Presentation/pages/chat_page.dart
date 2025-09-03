@@ -61,12 +61,13 @@ class _ChatPageState extends State<ChatPage> {
                     );
                   }
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
+                    return const Center(
                       child: CircularProgressIndicator(),
                     );
                   }
                   return ListView(
-                    children: snapshot.data!.docs
+                    reverse: true,
+                    children: snapshot.data!.docs.reversed
                         .map((e) => _buildMessage(e))
                         .toList(),
                   );
@@ -81,7 +82,7 @@ class _ChatPageState extends State<ChatPage> {
               )),
               IconButton(
                 onPressed: sendMessage,
-                icon: Icon(Icons.send),
+                icon: const Icon(Icons.send),
               )
             ],
           )
@@ -116,7 +117,7 @@ class _ChatPageState extends State<ChatPage> {
                 color: isCurrentUser ? Colors.green : Colors.grey[100]),
             child: Text(
               data["msg"],
-              style: TextStyle(color: Colors.black87),
+              style: const TextStyle(color: Colors.black87),
             ),
           )
         ],

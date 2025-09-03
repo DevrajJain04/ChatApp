@@ -13,5 +13,5 @@ abstract class AuthRepository {
   });
   void signOut();
   User? getCurrentUser();
-  Future<UserCredential?> signInWithGoogle({GoogleSignIn? googleInstance});
+  Future<UserCredential?> signInWithGoogle({GoogleSignIn? googleInstance,required String username});
 }

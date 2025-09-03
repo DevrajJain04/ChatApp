@@ -15,7 +15,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  AuthFunctions _authFunctions = AuthFunctions();
+  final AuthFunctions _authFunctions = AuthFunctions();
   @override
   void dispose() {
     _usernameController.dispose();

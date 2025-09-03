@@ -51,7 +51,7 @@ class AuthFunctions extends AuthRepository {
 
   @override
   Future<UserCredential?> signInWithGoogle(
-      {GoogleSignIn? googleInstance}) async {
+      {GoogleSignIn? googleInstance,required String username}) async {
     final GoogleSignInAccount? googleUser = await googleInstance!.signIn();
     GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
     AuthCredential credential = GoogleAuthProvider.credential(
@@ -60,6 +60,11 @@ class AuthFunctions extends AuthRepository {
     );
     UserCredential userCredential =
         await FirebaseAuth.instance.signInWithCredential(credential);
+        
+    _firestore.collection("Users").doc(userCredential.user!.uid).set({
+      "email": googleInstance.currentUser!.email,
+      "uid": userCredential.user!.uid,
+    });
     return userCredential;
   }
 }

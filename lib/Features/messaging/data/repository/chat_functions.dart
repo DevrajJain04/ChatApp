@@ -4,8 +4,8 @@ import 'package:yappsters/Features/messaging/data/model/message.dart';
 import 'package:yappsters/Features/messaging/domain/repository/chat_repo.dart';
 
 class ChatFunctions implements ChatRepo {
-  AuthFunctions _auth = AuthFunctions();
-  FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthFunctions _auth = AuthFunctions();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   @override
   FirebaseFirestore getFirestoreInstance() {
     final FirebaseFirestore firestoreInstance = FirebaseFirestore.instance;
@@ -23,6 +23,7 @@ class ChatFunctions implements ChatRepo {
     });
   }
 
+  @override
   Stream<QuerySnapshot> getChatRoomsForUser(String currentUserId) {
     return _firestore
         .collection('ChatRooms')
@@ -37,7 +38,7 @@ class ChatFunctions implements ChatRepo {
     final Timestamp timestamp = Timestamp.now();
 
     //create message
-    Message _message = Message(
+    Message message0 = Message(
       timestamp: timestamp,
       msg: message,
       receiverId: receiverId,
@@ -52,11 +53,12 @@ class ChatFunctions implements ChatRepo {
         .collection("ChatRooms")
         .doc(chatRoomId)
         .collection("messages")
-        .add(_message.toMap());
+        .add(message0.toMap());
 
     //get message
   }
 
+  @override
   Stream<QuerySnapshot> getMessages(String userId, otherUserId) {
     //construct chatroom id for both users
     List<String> ids = [userId, otherUserId];

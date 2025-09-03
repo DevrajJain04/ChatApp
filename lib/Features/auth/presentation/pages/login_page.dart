@@ -17,7 +17,7 @@ class LogInPage extends StatefulWidget {
 class _LogInPageState extends State<LogInPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final _auth = AuthFunctions();
   @override
   void dispose() {
@@ -64,7 +64,7 @@ class _LogInPageState extends State<LogInPage> {
                 Navigator.of(context).pushReplacementNamed(navBar);
               },
             ),
-            Spacer(),
+            const Spacer(),
             AuthGradientButton(
                 buttonText: 'Not an existing user ? Sign Up Now',
                 onPressed: () {
@@ -78,7 +78,8 @@ class _LogInPageState extends State<LogInPage> {
                   // if (currentUser == null) {}
                   try {
                     UserCredential? user = await _auth.signInWithGoogle(
-                        googleInstance: _googleSignIn);
+                        googleInstance: _googleSignIn,
+                        username: _emailController.text.trim());
                     if (user != null) {
                       Navigator.of(context).pushReplacementNamed(navBar);
                     }

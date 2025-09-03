@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:yappsters/Features/auth/presentation/pages/signup_page.dart';
 import 'package:yappsters/Features/auth/presentation/pages/navbar.dart';
 
@@ -14,21 +13,21 @@ import 'Features/auth/presentation/pages/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+  // FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  //   FlutterLocalNotificationsPlugin();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await flutterLocalNotificationsPlugin.initialize(onDidReceiveBackgroundNotificationResponse: (details) => ,);
+  // await flutterLocalNotificationsPlugin.initialize(onDidReceiveBackgroundNotificationResponse: (details) => {},);
   runApp(MaterialApp(
       title: 'Yappsters',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkThemeMode,
-      home: HomePage(),
+      home: const HomePage(),
       routes: {
         loginRoute: (context) => const LogInPage(),
         signupRoute: (context) => const SignUpPage(),
-        navBar: (context) => NavBar(),
+        navBar: (context) => const NavBar(),
         // chatRoute:(context) => ChatPage(),
-        allChats: (context) => AllChatScreen()
+        allChats: (context) => const AllChatScreen()
       }));
 }
 
@@ -39,9 +38,9 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return NavBar();
+      return const NavBar();
     } else {
-      return LogInPage();
+      return const LogInPage();
     }
   }
 }
