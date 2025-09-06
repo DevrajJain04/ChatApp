@@ -88,7 +88,7 @@ class AllChatScreenState extends State<AllChatScreen> {
                       snapshot.data!.docs[index].data();
                   return ListTile(
                     title: Text(userData['email'] ?? ''),
-                    subtitle: Text(userData['uid'] ?? ''),
+                    // subtitle: Text(userData['uid'] ?? ''),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
                           builder: (context) => ChatPage(

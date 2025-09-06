@@ -20,7 +20,6 @@ class _ChatPageState extends State<ChatPage> {
   final AuthFunctions _authFunctions = AuthFunctions();
 
   final TextEditingController _msgController = TextEditingController();
-  // FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   late String senderId;
   late String senderEmail;
