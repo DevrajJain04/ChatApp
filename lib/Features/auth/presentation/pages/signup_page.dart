@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:yappsters/Features/auth/data/repository/auth_functions.dart';
 import 'package:yappsters/core/constants/routes.dart';
 import 'package:yappsters/widgets/auth_field.dart';
@@ -35,33 +36,42 @@ class _SignUpPageState extends State<SignUpPage> {
             const Text(
               'Create Account',
               style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.bold,
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
                 color: Colors.yellowAccent,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 20),
             AuthField(hintText: 'Username', controller: _usernameController),
-            const Spacer(),
+            const SizedBox(height: 12),
             AuthField(
               hintText: 'Email',
               controller: _emailController,
             ),
-            const Spacer(),
+            const SizedBox(height: 12),
             AuthField(
               hintText: 'Password',
               controller: _passwordController,
               isObscureText: true,
             ),
-            const Spacer(),
+            const SizedBox(height: 20),
             AuthGradientButton(
               buttonText: 'Sign Up',
               onPressed: () async {
-                await _authFunctions.signUp(
-                    email: _emailController.text.trim().toLowerCase(),
-                    password: _passwordController.text.trim(),
-                    userName: _usernameController.text.trim());
-                Navigator.of(context).pushReplacementNamed(navBar);
+                try {
+                  await _authFunctions.signUp(
+                      email: _emailController.text.trim().toLowerCase(),
+                      password: _passwordController.text.trim(),
+                      userName: _usernameController.text.trim());
+                  if (!mounted) return;
+                  Navigator.of(context).pushReplacementNamed(navBar);
+                } on FirebaseException catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.message ?? 'Sign up failed')));
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Sign up failed')));
+                }
               },
             ),
           ],

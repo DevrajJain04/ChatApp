@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:yappsters/core/constants/routes.dart';
@@ -33,11 +34,12 @@ class _LogInPageState extends State<LogInPage> {
         title: const Text(
           'Log In',
           style: TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
+            fontSize: 28,
+            fontWeight: FontWeight.w600,
             color: Colors.yellowAccent,
           ),
         ),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -54,7 +56,7 @@ class _LogInPageState extends State<LogInPage> {
               hintText: 'Password',
               controller: _passwordController,
             ),
-            const Spacer(),
+            const SizedBox(height: 20),
             AuthGradientButton(
               buttonText: 'Log In',
               onPressed: () async {
@@ -64,13 +66,13 @@ class _LogInPageState extends State<LogInPage> {
                 Navigator.of(context).pushReplacementNamed(navBar);
               },
             ),
-            const Spacer(),
+            const SizedBox(height: 12),
             AuthGradientButton(
                 buttonText: 'Not an existing user ? Sign Up Now',
                 onPressed: () {
                   Navigator.of(context).pushNamed(signupRoute);
                 }),
-            const Spacer(),
+            const SizedBox(height: 20),
             AuthGradientButton(
                 buttonText: 'GoogleSignIN',
                 onPressed: () async {
@@ -78,9 +80,21 @@ class _LogInPageState extends State<LogInPage> {
                   // if (currentUser == null) {}
                   try {
                     UserCredential? user = await _auth.signInWithGoogle(
-                        googleInstance: _googleSignIn,
-                        username: _emailController.text.trim());
+                        googleInstance: _googleSignIn);
                     if (user != null) {
+                      // If user has no username yet, ask for one briefly
+                      final doc = await FirebaseFirestore.instance
+                          .collection('Users')
+                          .doc(user.user!.uid)
+                          .get();
+                      final hasUsername =
+                          (doc.data() ?? const {})['username'] is String;
+                      if (!hasUsername) {
+                        final uname = await _askUsername(context);
+                        if (uname != null && uname.isNotEmpty) {
+                          await _auth.setUsernameForCurrentUser(uname.trim());
+                        }
+                      }
                       Navigator.of(context).pushReplacementNamed(navBar);
                     }
                   } catch (e) {
@@ -91,5 +105,25 @@ class _LogInPageState extends State<LogInPage> {
         ),
       ),
     );
+  }
+
+  Future<String?> _askUsername(BuildContext context) async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            title: const Text('Choose a username'),
+            content: AuthField(hintText: 'username', controller: controller),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel')),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                  child: const Text('Save')),
+            ],
+          );
+        });
   }
 }

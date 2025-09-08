@@ -23,13 +23,27 @@ class _ChatPageState extends State<ChatPage> {
 
   late String senderId;
   late String senderEmail;
+  String? receiverUsername;
   @override
   void initState() {
     senderId = _authFunctions.getCurrentUser()!.uid;
     senderEmail = _authFunctions.getCurrentUser()!.email!;
     _chatFunctions.listenForNewMessages(
         senderId, widget.receiverId, showNotification, senderEmail);
+    _loadReceiver();
     super.initState();
+  }
+
+  Future<void> _loadReceiver() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(widget.receiverId)
+        .get();
+    if (doc.exists) {
+      setState(() {
+        receiverUsername = doc.data()?["username"] as String?;
+      });
+    }
   }
 
   void showNotification() {}
@@ -46,7 +60,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.receiverEmail),
+  title: Text(receiverUsername ?? widget.receiverEmail),
       ),
       body: Column(
         children: [

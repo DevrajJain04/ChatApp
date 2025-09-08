@@ -5,6 +5,7 @@ import 'package:yappsters/Features/messaging/Presentation/pages/chat_page.dart';
 // import 'package:yappsters/Features/messaging/data/repository/chat_functions.dart';
 
 import '../../../auth/data/repository/auth_functions.dart';
+import '../../data/repository/friends_service.dart';
 
 class AllChatScreen extends StatefulWidget {
   const AllChatScreen({super.key});
@@ -13,17 +14,39 @@ class AllChatScreen extends StatefulWidget {
   State<AllChatScreen> createState() => AllChatScreenState();
 }
 
-class AllChatScreenState extends State<AllChatScreen> {
+class AllChatScreenState extends State<AllChatScreen> with SingleTickerProviderStateMixin {
   // final ChatFunctions _chatFunctions = ChatFunctions();
   final AuthFunctions _authFunctions = AuthFunctions();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FriendsService _friends;
+  late final TabController _tabController;
+
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _friends = FriendsService();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Chat Screen'),
+          title: const Text('Chats'),
           centerTitle: true,
+          bottom: TabBar(controller: _tabController, tabs: const [
+            Tab(text: 'Friends'),
+            Tab(text: 'Requests'),
+          ]),
         ),
         drawer: Drawer(
           child: Column(
@@ -63,42 +86,119 @@ class AllChatScreenState extends State<AllChatScreen> {
             ],
           ),
         ),
-        body: StreamBuilder(
-            stream: _firestore.collection("Users").snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(snapshot.error.toString()),
+        body: TabBarView(controller: _tabController, children: [
+          // Friends list
+          Column(children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search username to add friend',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.person_add_alt_1),
+                    onPressed: _onSearchAndSendRequest,
+                    tooltip: 'Send friend request',
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _friends.friendsStream(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(child: Text(snapshot.error.toString()));
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final friends = snapshot.data!;
+                    if (friends.isEmpty) {
+                      return const Center(child: Text('No friends yet'));
+                    }
+                    return ListView.builder(
+                      itemCount: friends.length,
+                      itemBuilder: (context, index) {
+                        final userData = friends[index];
+                        return ListTile(
+                          title: Text(userData['username'] ?? userData['email'] ?? ''),
+                          subtitle: Text(userData['email'] ?? ''),
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => ChatPage(
+                                      receiverEmail: userData['email'] ?? '',
+                                      receiverId: userData['uid'],
+                                    )));
+                          },
+                        );
+                      },
+                    );
+                  }),
+            ),
+          ]),
+          // Requests tab
+          StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _friends.incomingRequestsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text(snapshot.error.toString()));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final req = snapshot.data!;
+                if (req.isEmpty) {
+                  return const Center(child: Text('No incoming requests'));
+                }
+                return ListView.builder(
+                  itemCount: req.length,
+                  itemBuilder: (context, index) {
+                    final userData = req[index];
+                    return ListTile(
+                      title: Text(userData['username'] ?? userData['email'] ?? ''),
+                      subtitle: Text(userData['email'] ?? ''),
+                      trailing: TextButton(
+                        child: const Text('Accept'),
+                        onPressed: () async {
+                          await _friends.acceptRequest(userData['uid']);
+                        },
+                      ),
+                    );
+                  },
                 );
-              }
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-              if (snapshot.connectionState == ConnectionState.none) {
-                return const Center(
-                  child: Text('connection state is none'),
-                );
-              }
-              return ListView.builder(
-                itemCount: snapshot.data!.docs.length,
-                itemBuilder: (context, index) {
-                  Map<String, dynamic> userData =
-                      snapshot.data!.docs[index].data();
-                  return ListTile(
-                    title: Text(userData['email'] ?? ''),
-                    // subtitle: Text(userData['uid'] ?? ''),
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => ChatPage(
-                                receiverEmail: userData['email'],
-                                receiverId: userData['uid'],
-                              )));
-                    },
-                  );
-                },
-              );
-            }));
+              }),
+        ]));
+  }
+
+  Future<void> _onSearchAndSendRequest() async {
+    final uname = _searchController.text.trim();
+    if (uname.isEmpty) return;
+    try {
+      final snap = await _firestore.collection('Usernames').doc(uname).get();
+      if (!snap.exists) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('User not found')));
+        return;
+      }
+      final toUid = snap.data()!['uid'] as String;
+      await _friends.sendRequest(toUid);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Request sent')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 }
