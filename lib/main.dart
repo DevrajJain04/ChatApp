@@ -10,6 +10,8 @@ import 'package:yappsters/core/theme/theme.dart';
 import 'package:yappsters/firebase_options.dart';
 
 import 'Features/auth/presentation/pages/login_page.dart';
+import 'Features/auth/presentation/pages/phone_auth_page.dart';
+import 'Features/auth/presentation/pages/email_verification_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +29,9 @@ void main() async {
         signupRoute: (context) => const SignUpPage(),
         navBar: (context) => const NavBar(),
         // chatRoute:(context) => ChatPage(),
-        allChats: (context) => const AllChatScreen()
+        allChats: (context) => const AllChatScreen(),
+        phoneAuthRoute: (context) => const PhoneAuthPage(),
+        emailVerificationRoute: (context) => const EmailVerificationPage(),
       }));
 }
 
@@ -38,6 +42,12 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      // Check if email is verified for email/password users
+      if (user.providerData
+              .any((provider) => provider.providerId == 'password') &&
+          !user.emailVerified) {
+        return const EmailVerificationPage();
+      }
       return const NavBar();
     } else {
       return const LogInPage();

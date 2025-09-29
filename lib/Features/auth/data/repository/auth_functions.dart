@@ -58,7 +58,8 @@ class AuthFunctions extends AuthRepository {
       password: password,
     );
     // Ensure user doc exists but do not overwrite existing fields like username.
-    final userDoc = _firestore.collection("Users").doc(userCredential.user!.uid);
+    final userDoc =
+        _firestore.collection("Users").doc(userCredential.user!.uid);
     final snap = await userDoc.get();
     if (!snap.exists) {
       await userDoc.set({
@@ -74,7 +75,8 @@ class AuthFunctions extends AuthRepository {
   @override
   Future<UserCredential?> signInWithGoogle(
       {GoogleSignIn? googleInstance}) async {
-    final GoogleSignInAccount? googleUser = await (googleInstance ?? GoogleSignIn()).signIn();
+    final GoogleSignInAccount? googleUser =
+        await (googleInstance ?? GoogleSignIn()).signIn();
     GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
     AuthCredential credential = GoogleAuthProvider.credential(
       accessToken: googleAuth?.accessToken,
@@ -100,7 +102,9 @@ class AuthFunctions extends AuthRepository {
   @override
   Future<void> setUsernameForCurrentUser(String username) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw FirebaseAuthException(code: 'not-authenticated', message: 'No user');
+    if (user == null)
+      throw FirebaseAuthException(
+          code: 'not-authenticated', message: 'No user');
 
     final usernames = _firestore.collection('Usernames');
     final users = _firestore.collection('Users');
@@ -128,5 +132,144 @@ class AuthFunctions extends AuthRepository {
       tx.set(unameDocRef, {"uid": user.uid});
       tx.set(userDocRef, {"username": username}, SetOptions(merge: true));
     });
+  }
+
+  // Email verification methods
+  @override
+  Future<void> sendEmailVerification() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  @override
+  Future<void> reloadUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.reload();
+    }
+  }
+
+  @override
+  bool isEmailVerified() {
+    final user = FirebaseAuth.instance.currentUser;
+    return user?.emailVerified ?? false;
+  }
+
+  // Phone authentication methods
+  @override
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required Function(PhoneAuthCredential) verificationCompleted,
+    required Function(FirebaseAuthException) verificationFailed,
+    required Function(String, int?) codeSent,
+    required Function(String) codeAutoRetrievalTimeout,
+  }) async {
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: verificationCompleted,
+      verificationFailed: verificationFailed,
+      codeSent: codeSent,
+      codeAutoRetrievalTimeout: codeAutoRetrievalTimeout,
+    );
+  }
+
+  @override
+  Future<UserCredential> signInWithPhoneCredential(
+      PhoneAuthCredential credential) async {
+    UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    // Create user document if missing
+    final userDoc =
+        _firestore.collection("Users").doc(userCredential.user!.uid);
+    final snap = await userDoc.get();
+    if (!snap.exists) {
+      await userDoc.set({
+        "uid": userCredential.user!.uid,
+        "phoneNumber": userCredential.user!.phoneNumber,
+        "createdAt": FieldValue.serverTimestamp(),
+        "provider": "phone",
+      }, SetOptions(merge: true));
+    }
+
+    return userCredential;
+  }
+
+  @override
+  Future<void> linkPhoneNumber(PhoneAuthCredential credential) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.linkWithCredential(credential);
+
+      // Update user document with phone number
+      await _firestore.collection("Users").doc(user.uid).set({
+        "phoneNumber": user.phoneNumber,
+        "updatedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  // Profile update methods
+  @override
+  Future<void> updateDisplayName(String displayName) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.updateDisplayName(displayName);
+
+      // Update Firestore document
+      await _firestore.collection("Users").doc(user.uid).set({
+        "displayName": displayName,
+        "updatedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  @override
+  Future<void> updateEmail(String newEmail) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.updateEmail(newEmail);
+
+      // Update Firestore document
+      await _firestore.collection("Users").doc(user.uid).set({
+        "email": newEmail,
+        "emailVerified": false,
+        "updatedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.updatePassword(newPassword);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await _firestore.collection("Users").doc(user.uid).get();
+      if (doc.exists) {
+        return doc.data();
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<void> updateUserProfile(Map<String, dynamic> profileData) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      profileData['updatedAt'] = FieldValue.serverTimestamp();
+      await _firestore.collection("Users").doc(user.uid).set(
+            profileData,
+            SetOptions(merge: true),
+          );
+    }
   }
 }
